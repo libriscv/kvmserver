@@ -219,20 +219,7 @@ Configuration Configuration::FromJsonFile(const std::string& filename)
 		{
 			for (const auto& path : json["allowed_networks"]) {
 				NetworkPath net_path;
-				if (path.contains("path"))
-				{
-					// This is a Unix socket path
-					std::string unix_path = path.value("path", "");
-					if (unix_path.empty()) {
-						fprintf(stderr, "Missing required field 'path' in allowed_unix_paths in configuration file: %s\n", filename.c_str());
-						throw std::runtime_error("Missing required field 'path' in allowed_unix_paths in configuration file: " + filename);
-					}
-					unix_path = apply_dollar_vars(unix_path);
-					net_path.unix_path = unix_path;
-					net_path.is_listenable = path.value("listen", false);
-					config.allowed_network_unix.push_back(net_path);
-				}
-				else if (path.contains("domain"))
+				if (path.contains("domain"))
 				{
 					const std::string address = path["domain"].get<std::string>();
 					// Resolve the domain name to an IP address

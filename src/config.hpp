@@ -56,11 +56,9 @@ struct Configuration
 	std::string current_working_directory = "/";
 
 	struct NetworkPath {
-		std::string unix_path;
 		struct sockaddr_storage sockaddr;
 		bool is_listenable = false;
 	};
-	std::vector<NetworkPath> allowed_network_unix;
 	std::vector<NetworkPath> allowed_network_ipv4;
 	std::vector<NetworkPath> allowed_network_ipv6;
 	bool network_allow_connect = false; /* Allow all outgoing network connections */

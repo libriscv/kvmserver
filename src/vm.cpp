@@ -99,18 +99,20 @@ VirtualMachine::VirtualMachine(const std::vector<uint8_t>& binary, const Configu
 		const bool is_unix = addr.ss_family == AF_UNIX;
 		const bool is_ipv4 = addr.ss_family == AF_INET;
 		const bool is_ipv6 = addr.ss_family == AF_INET6;
+
+		// Validate unix socket path against allow-read and allow-write
 		if (is_unix)
 		{
-			const struct sockaddr_un* addr_unix =
-				reinterpret_cast<const struct sockaddr_un*>(&addr);
-			for (auto& tpath : m_config.allowed_network_unix) {
-				// Compare the socket path with the allowed path
-				if (addr_unix->sun_path == tpath.unix_path) {
-					// The socket path is allowed
-					return true;
-				}
-			}
+			// Compare the socket path with the allowed path
+			const struct sockaddr_un *addr_unix =
+				reinterpret_cast<const struct sockaddr_un *>(&addr);
+			std::string sun_path = addr_unix->sun_path;
+			// TODO: reverse the virtual path mapping here?
+			return machine().fds().is_writable_path(sun_path) &&
+				machine().fds().is_readable_path(sun_path);
 		}
+
+		// Validate network addresses against allow-connect
 		else if (is_ipv4)
 		{
 			// Compare the socket address with the allowed address
@@ -644,20 +646,20 @@ bool VirtualMachine::validate_listener(int fd)
 	const bool is_ipv4 = addr.ss_family == AF_INET;
 	const bool is_ipv6 = addr.ss_family == AF_INET6;
 
+	// Validate unix socket path against allow-read and allow-write
 	if (is_unix)
 	{
 		// Compare the socket path with the allowed path
 		const struct sockaddr_un *addr_unix =
 			reinterpret_cast<const struct sockaddr_un *>(&addr);
-		for (auto& tpath : m_config.allowed_network_unix)
-		if (addr_unix->sun_path == tpath.unix_path
-			&& tpath.is_listenable)
-		{
-			// The socket path is allowed
-			return true;
-		}
+		std::string sun_path = addr_unix->sun_path;
+		// TODO: reverse the virtual path mapping here?
+		return machine().fds().is_writable_path(sun_path) &&
+			machine().fds().is_readable_path(sun_path);
 	}
-	else if (is_ipv4)
+
+	// Validate network addresses against allow-listen
+	if (is_ipv4)
 	{
 		const struct sockaddr_in *addr_ipv4 =
 			reinterpret_cast<const struct sockaddr_in *>(&addr);
