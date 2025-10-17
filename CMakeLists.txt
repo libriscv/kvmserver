@@ -13,6 +13,7 @@ add_executable(kvmserver
 	src/file.cpp
 	src/warmup.cpp
 	src/vm.cpp
+	src/vm_state.cpp
 )
 target_compile_features(kvmserver PUBLIC cxx_std_20)
 target_link_libraries(kvmserver

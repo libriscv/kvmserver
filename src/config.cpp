@@ -315,7 +315,7 @@ Configuration Configuration::FromArgs(int argc, char* argv[])
 	app.add_option("-t,--threads", config.concurrency, "Number of request VMs (0 to use cpu count)")->capture_default_str();
 	app.add_flag("-e,--ephemeral", config.ephemeral, "Use ephemeral VMs");
 	app.add_option("-w,--warmup", config.warmup_connect_requests, "Number of warmup requests")->capture_default_str();
-	app.add_option("--cold-start-file", config.coldstart_filename, "Cold start snapshot filename");
+	app.add_option("--snapshot-file", config.snapshot_filename, "Snapshot filename");
 
 	app.add_flag("-v,--verbose", config.verbose, "Enable verbose output")->group("Verbose");
 	app.add_flag("--verbose-syscalls", config.verbose_syscalls, "Enable verbose syscall output")->group("Verbose");

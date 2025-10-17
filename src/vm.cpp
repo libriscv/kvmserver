@@ -166,8 +166,8 @@ VirtualMachine::VirtualMachine(std::string_view binary, const Configuration& con
 		.master_direct_memory_writes = true,
 		.split_hugepages = false,
 		.executable_heap = config.executable_heap,
-		.mmap_backed_files = config.mmap_backed_files,
-		.fast_cold_start_file = storage ? "" : config.coldstart_filename,
+		.mmap_backed_files = config.mmap_backed_files && config.snapshot_filename.empty(),
+		.snapshot_file = storage ? "" : config.snapshot_filename,
 		.hugepages_arena_size = config.hugepage_arena_size,
 	}),
 	m_config(config),
@@ -414,9 +414,28 @@ void VirtualMachine::reset_to(const VirtualMachine& other)
 	this->m_blocking_connections = false;
 }
 
+VirtualMachine::InitResult VirtualMachine::initialize_from_file()
+{
+	InitResult result;
+	auto start = std::chrono::high_resolution_clock::now();
+	this->set_waiting_for_requests(true);
+	this->machine().prepare_copy_on_write();
+	if (this->machine().has_snapshot_state()) {
+		this->load_state();
+	}
+	auto end = std::chrono::high_resolution_clock::now();
+	result.initialization_time += std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+	result.warmup_time = std::chrono::milliseconds(0);
+	return result;
+}
+
 VirtualMachine::InitResult VirtualMachine::initialize(std::function<void()> warmup_callback, bool just_one_vm)
 {
 	InitResult result;
+	if (machine().has_snapshot_state()) {
+		return this->initialize_from_file();
+	}
+
 	auto start = std::chrono::high_resolution_clock::now();
 	try {
 		// Use constrained working memory
@@ -618,6 +637,10 @@ VirtualMachine::InitResult VirtualMachine::initialize(std::function<void()> warm
 			auto& regs = machine().registers();
 			regs.rip += 2;
 			machine().set_registers(regs);
+		}
+
+		if (!m_is_storage && machine().main_memory().has_snapshot_area()) {
+			this->save_state();
 		}
 
 		// Finish measuring initialization time
